@@ -459,7 +459,7 @@ class v8DetectionLoss:
                 fg_mask.shape[0], -1, -1
             )
             
-            pos_anchors = anchor_points[fg_mask]
+            pos_anchors = anchor_points_batch[fg_mask]
 
             l = pos_anchors[:, 0] - pos_bbox[:, 0]
             r = pos_bbox[:, 2] - pos_anchors[:, 0]
