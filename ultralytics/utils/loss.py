@@ -436,17 +436,11 @@ class v8DetectionLoss:
 
         target_scores_sum = max(target_scores.sum(), 1)
 
-    # =========================
-    # 🔥 CLS LOSS
-    # =========================
     bce_loss = self.bce(pred_scores, target_scores.to(dtype))
         if self.class_weights is not None:
             bce_loss *= self.class_weights
             loss[1] = bce_loss.sum() / target_scores_sum
 
-    # =========================
-    # 🔥 BBOX + DFL LOSS
-    # =========================
         if fg_mask.sum():
             loss[0], loss[2] = self.bbox_loss(
             pred_distri,
@@ -460,17 +454,11 @@ class v8DetectionLoss:
             stride_tensor,
         )
 
-    # =========================
-    # 🔥 CENTERNESS LOSS (NEW)
-    # =========================
-    if fg_mask.sum():
-        # ambil bbox positive saja
+  
+        if fg_mask.sum():
             pos_bbox = target_bboxes[fg_mask]
-
-        # anchor point positive
             pos_anchors = anchor_points[fg_mask]
-
-        # hitung l, r, t, b
+            
             l = pos_anchors[:, 0] - pos_bbox[:, 0]
             r = pos_bbox[:, 2] - pos_anchors[:, 0]
             t = pos_anchors[:, 1] - pos_bbox[:, 1]
@@ -482,7 +470,7 @@ class v8DetectionLoss:
                 (torch.min(t, b) / (torch.max(t, b) + eps))
             )
 
-        # ambil pred center yang sesuai
+      
             pred_center_pos = pred_centers[fg_mask].squeeze(-1)
 
             loss[3] = F.binary_cross_entropy_with_logits(
@@ -491,13 +479,11 @@ class v8DetectionLoss:
                 reduction="mean"
             )
 
-    # =========================
-    # SCALE LOSS
-    # =========================
-        loss[0] *= self.hyp.box
-        loss[1] *= self.hyp.cls
-        loss[2] *= self.hyp.dfl
-        loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
+
+            loss[0] *= self.hyp.box
+            loss[1] *= self.hyp.cls
+            loss[2] *= self.hyp.dfl
+            loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
 
         return (
             (fg_mask, target_gt_idx, target_bboxes, anchor_points, stride_tensor),
