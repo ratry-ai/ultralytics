@@ -423,7 +423,7 @@ class v8DetectionLoss:
     # Decode bbox
         pred_bboxes = self.bbox_decode(anchor_points, pred_distri)
 
-        target_bboxes, target_scores, fg_mask, target_gt_idx = self.assigner(
+        target_labels, target_bboxes, target_scores, fg_mask, target_gt_idx = self.assigner(
         pred_scores.detach().sigmoid(),
         (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
         anchor_points * stride_tensor,
