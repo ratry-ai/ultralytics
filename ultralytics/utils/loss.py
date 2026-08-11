@@ -333,7 +333,6 @@ class KeypointLoss(nn.Module):
         e = d / ((2 * self.sigmas).pow(2) * (area + 1e-9) * 2)  # from cocoeval
         return (kpt_loss_factor.view(-1, 1) * ((1 - torch.exp(-e)) * kpt_mask)).mean()
 
-
 class v8DetectionLoss:
     """Criterion class for computing training losses for YOLOv8 object detection."""
 
@@ -398,7 +397,7 @@ class v8DetectionLoss:
             # pred_dist = pred_dist.view(b, a, c // 4, 4).transpose(2,3).softmax(3).matmul(self.proj.type(pred_dist.dtype))
             # pred_dist = (pred_dist.view(b, a, c // 4, 4).softmax(2) * self.proj.type(pred_dist.dtype).view(1, 1, -1, 1)).sum(2)
         return dist2bbox(pred_dist, anchor_points, xywh=False)
-    
+
     def get_assigned_targets_and_loss(self, preds: dict[str, torch.Tensor], batch: dict[str, Any]) -> tuple:
         loss = torch.zeros(4, device=self.device)  # box, cls, dfl, center
 
@@ -435,65 +434,64 @@ class v8DetectionLoss:
 
         target_scores_sum = max(target_scores.sum(), 1)
         bce_loss = self.bce(pred_scores, target_scores.to(dtype))
-    if self.class_weights is not None:
-        bce_loss *= self.class_weights
-    loss[1] = bce_loss.sum() / target_scores_sum
+        if self.class_weights is not None:
+            bce_loss *= self.class_weights
+        loss[1] = bce_loss.sum() / target_scores_sum
 
-    if fg_mask.sum():
-        loss[0], loss[2] = self.bbox_loss(
-            pred_distri,
-            pred_bboxes,
-            anchor_points,
-            target_bboxes / stride_tensor,
-            target_scores,
-            target_scores_sum,
-            fg_mask,
-            imgsz,
-            stride_tensor,
-        )
-
-  
-    if fg_mask.sum():
-        pos_bbox = target_bboxes[fg_mask]
-        pos_anchors = anchor_points[fg_mask]
-            
-        l = pos_anchors[:, 0] - pos_bbox[:, 0]
-        r = pos_bbox[:, 2] - pos_anchors[:, 0]
-        t = pos_anchors[:, 1] - pos_bbox[:, 1]
-        b = pos_bbox[:, 3] - pos_anchors[:, 1]
-
-        eps = 1e-6
-        centerness_target = torch.sqrt(
-        (torch.min(l, r) / (torch.max(l, r) + eps)) *
-        (torch.min(t, b) / (torch.max(t, b) + eps))
-        )
-
-      
-        pred_center_pos = pred_centers[fg_mask].squeeze(-1)
-
-        loss[3] = F.binary_cross_entropy_with_logits(
-            pred_center_pos,
-                centerness_target,
-                reduction="mean"
+        if fg_mask.sum():
+            loss[0], loss[2] = self.bbox_loss(
+                pred_distri,
+                pred_bboxes,
+                anchor_points,
+                target_bboxes / stride_tensor,
+                target_scores,
+                target_scores_sum,
+                fg_mask,
+                imgsz,
+                stride_tensor,
             )
 
 
-        loss[0] *= self.hyp.box
-        loss[1] *= self.hyp.cls
-        loss[2] *= self.hyp.dfl
-        loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
+        if fg_mask.sum():
+            pos_bbox = target_bboxes[fg_mask]
+            pos_anchors = anchor_points[fg_mask]
 
-    return (
-            (fg_mask, target_gt_idx, target_bboxes, anchor_points, stride_tensor),
-            loss,
-                {
-                "box_loss": loss[0].detach(),
-                "cls_loss": loss[1].detach(),
-                "dfl_loss": loss[2].detach(),
-                "center_loss": loss[3].detach(),
-                },
+            l = pos_anchors[:, 0] - pos_bbox[:, 0]
+            r = pos_bbox[:, 2] - pos_anchors[:, 0]
+            t = pos_anchors[:, 1] - pos_bbox[:, 1]
+            b = pos_bbox[:, 3] - pos_anchors[:, 1]
+
+            eps = 1e-6
+            centerness_target = torch.sqrt(
+            (torch.min(l, r) / (torch.max(l, r) + eps)) *
+            (torch.min(t, b) / (torch.max(t, b) + eps))
             )
-    
+
+
+            pred_center_pos = pred_centers[fg_mask].squeeze(-1)
+
+            loss[3] = F.binary_cross_entropy_with_logits(
+                pred_center_pos,
+                    centerness_target,
+                    reduction="mean"
+                )
+
+
+            loss[0] *= self.hyp.box
+            loss[1] *= self.hyp.cls
+            loss[2] *= self.hyp.dfl
+            loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
+
+        return (
+                (fg_mask, target_gt_idx, target_bboxes, anchor_points, stride_tensor),
+                loss,
+                    {
+                    "box_loss": loss[0].detach(),
+                    "cls_loss": loss[1].detach(),
+                    "dfl_loss": loss[2].detach(),
+                    "center_loss": loss[3].detach(),
+                    },
+                )    
     def parse_output(
         self, preds: dict[str, torch.Tensor] | tuple[torch.Tensor, dict[str, torch.Tensor]]
     ) -> torch.Tensor:
