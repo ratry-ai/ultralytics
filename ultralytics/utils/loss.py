@@ -434,8 +434,7 @@ class v8DetectionLoss:
         )
 
         target_scores_sum = max(target_scores.sum(), 1)
-
-    bce_loss = self.bce(pred_scores, target_scores.to(dtype))
+        bce_loss = self.bce(pred_scores, target_scores.to(dtype))
     if self.class_weights is not None:
         bce_loss *= self.class_weights
     loss[1] = bce_loss.sum() / target_scores_sum
