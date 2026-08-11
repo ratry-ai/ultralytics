@@ -407,7 +407,6 @@ class v8DetectionLoss:
             preds["scores"].permute(0, 2, 1).contiguous(),
         )
 
-    # 🔥 TAMBAHAN CENTERNESS
         pred_centers = preds["centerness"].permute(0, 2, 1).contiguous()
 
         anchor_points, stride_tensor = make_anchors(preds["feats"], self.stride, 0.5)
@@ -426,23 +425,23 @@ class v8DetectionLoss:
         pred_bboxes = self.bbox_decode(anchor_points, pred_distri)
 
         target_bboxes, target_scores, fg_mask, target_gt_idx = self.assigner(
-        pred_scores.detach().sigmoid(),
-        (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
-        anchor_points * stride_tensor,
-        gt_labels,
-        gt_bboxes,
-        mask_gt,
+            pred_scores.detach().sigmoid(),
+            (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
+            anchor_points * stride_tensor,
+            gt_labels,
+            gt_bboxes,
+            mask_gt,
         )
 
         target_scores_sum = max(target_scores.sum(), 1)
 
     bce_loss = self.bce(pred_scores, target_scores.to(dtype))
-        if self.class_weights is not None:
-            bce_loss *= self.class_weights
-            loss[1] = bce_loss.sum() / target_scores_sum
+    if self.class_weights is not None:
+        bce_loss *= self.class_weights
+    loss[1] = bce_loss.sum() / target_scores_sum
 
-        if fg_mask.sum():
-            loss[0], loss[2] = self.bbox_loss(
+    if fg_mask.sum():
+        loss[0], loss[2] = self.bbox_loss(
             pred_distri,
             pred_bboxes,
             anchor_points,
@@ -455,37 +454,37 @@ class v8DetectionLoss:
         )
 
   
-        if fg_mask.sum():
-            pos_bbox = target_bboxes[fg_mask]
-            pos_anchors = anchor_points[fg_mask]
+    if fg_mask.sum():
+        pos_bbox = target_bboxes[fg_mask]
+        pos_anchors = anchor_points[fg_mask]
             
-            l = pos_anchors[:, 0] - pos_bbox[:, 0]
-            r = pos_bbox[:, 2] - pos_anchors[:, 0]
-            t = pos_anchors[:, 1] - pos_bbox[:, 1]
-            b = pos_bbox[:, 3] - pos_anchors[:, 1]
+        l = pos_anchors[:, 0] - pos_bbox[:, 0]
+        r = pos_bbox[:, 2] - pos_anchors[:, 0]
+        t = pos_anchors[:, 1] - pos_bbox[:, 1]
+        b = pos_bbox[:, 3] - pos_anchors[:, 1]
 
-            eps = 1e-6
-            centerness_target = torch.sqrt(
-                (torch.min(l, r) / (torch.max(l, r) + eps)) *
-                (torch.min(t, b) / (torch.max(t, b) + eps))
-            )
+        eps = 1e-6
+        centerness_target = torch.sqrt(
+        (torch.min(l, r) / (torch.max(l, r) + eps)) *
+        (torch.min(t, b) / (torch.max(t, b) + eps))
+        )
 
       
-            pred_center_pos = pred_centers[fg_mask].squeeze(-1)
+        pred_center_pos = pred_centers[fg_mask].squeeze(-1)
 
-            loss[3] = F.binary_cross_entropy_with_logits(
-                pred_center_pos,
+        loss[3] = F.binary_cross_entropy_with_logits(
+            pred_center_pos,
                 centerness_target,
                 reduction="mean"
             )
 
 
-            loss[0] *= self.hyp.box
-            loss[1] *= self.hyp.cls
-            loss[2] *= self.hyp.dfl
-            loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
+        loss[0] *= self.hyp.box
+        loss[1] *= self.hyp.cls
+        loss[2] *= self.hyp.dfl
+        loss[3] *= 0.5  # weight centerness (bisa kamu tuning)
 
-        return (
+    return (
             (fg_mask, target_gt_idx, target_bboxes, anchor_points, stride_tensor),
             loss,
                 {
