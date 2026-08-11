@@ -425,12 +425,12 @@ class v8DetectionLoss:
         pred_bboxes = self.bbox_decode(anchor_points, pred_distri)
 
         target_bboxes, target_scores, fg_mask, target_gt_idx = self.assigner(
-            pred_scores.detach().sigmoid(),
-            (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
-            anchor_points * stride_tensor,
-            gt_labels,
-            gt_bboxes,
-            mask_gt,
+        pred_scores.detach().sigmoid(),
+        (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
+        anchor_points * stride_tensor,
+        gt_labels,
+        gt_bboxes,
+        mask_gt,
         )
 
         target_scores_sum = max(target_scores.sum(), 1)
