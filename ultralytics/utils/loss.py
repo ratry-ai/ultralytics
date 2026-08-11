@@ -460,66 +460,36 @@ class v8DetectionLoss:
              fg_mask.shape[0], -1, -1
            )
 
-         pos_anchors = anchor_points_batch[fg_mask]
+           pos_anchors = anchor_points_batch[fg_mask]
 
-         l = pos_anchors[:, 0] - pos_bbox[:, 0]
-         r = pos_bbox[:, 2] - pos_anchors[:, 0]
-         t = pos_anchors[:, 1] - pos_bbox[:, 1]
-         b = pos_bbox[:, 3] - pos_anchors[:, 1]
+           l = pos_anchors[:, 0] - pos_bbox[:, 0]
+           r = pos_bbox[:, 2] - pos_anchors[:, 0]
+           t = pos_anchors[:, 1] - pos_bbox[:, 1]
+           b = pos_bbox[:, 3] - pos_anchors[:, 1]
 
-         eps = 1e-6
+           eps = 1e-6
 
-         lr_min = torch.minimum(l, r)
-         lr_max = torch.maximum(l, r)
+           lr_min = torch.minimum(l, r)
+           lr_max = torch.maximum(l, r)
 
-         tb_min = torch.minimum(t, b)
-         tb_max = torch.maximum(t, b)
+           tb_min = torch.minimum(t, b)
+           tb_max = torch.maximum(t, b)
 
-         centerness_target = torch.sqrt(
-             (lr_min.clamp(min=0) / (lr_max + eps)) *
-             (tb_min.clamp(min=0) / (tb_max + eps))
-         )
+           centerness_target = torch.sqrt(
+               (lr_min.clamp(min=0) / (lr_max + eps)) *
+               (tb_min.clamp(min=0) / (tb_max + eps))
+           )
 
-         centerness_target = centerness_target.clamp(0, 1)
+           centerness_target = centerness_target.clamp(0, 1)
 
-         pred_center_pos = pred_centers[fg_mask].squeeze(-1)
+           pred_center_pos = pred_centers[fg_mask].squeeze(-1)
 
-         loss[3] = F.binary_cross_entropy_with_logits(
-             pred_center_pos,
-             centerness_target,
-             reduction="mean"
-         )
+           loss[3] = F.binary_cross_entropy_with_logits(
+               pred_center_pos,
+               centerness_target,
+               reduction="mean"
+           )
         
-        if fg_mask.sum():
-            pos_bbox = target_bboxes[fg_mask]
-
-            anchor_points_batch = anchor_points.unsqueeze(0).expand(
-                fg_mask.shape[0], -1, -1
-            )
-            
-            pos_anchors = anchor_points_batch[fg_mask]
-
-            l = pos_anchors[:, 0] - pos_bbox[:, 0]
-            r = pos_bbox[:, 2] - pos_anchors[:, 0]
-            t = pos_anchors[:, 1] - pos_bbox[:, 1]
-            b = pos_bbox[:, 3] - pos_anchors[:, 1]
-
-            eps = 1e-6
-            centerness_target = torch.sqrt(
-            (torch.min(l, r) / (torch.max(l, r) + eps)) *
-            (torch.min(t, b) / (torch.max(t, b) + eps))
-            )
-
-
-            pred_center_pos = pred_centers[fg_mask].squeeze(-1)
-
-            loss[3] = F.binary_cross_entropy_with_logits(
-                pred_center_pos,
-                    centerness_target,
-                    reduction="mean"
-                )
-
-
             loss[0] *= self.hyp.box
             loss[1] *= self.hyp.cls
             loss[2] *= self.hyp.dfl
