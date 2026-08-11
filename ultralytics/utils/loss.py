@@ -398,9 +398,9 @@ class v8DetectionLoss:
             # pred_dist = pred_dist.view(b, a, c // 4, 4).transpose(2,3).softmax(3).matmul(self.proj.type(pred_dist.dtype))
             # pred_dist = (pred_dist.view(b, a, c // 4, 4).softmax(2) * self.proj.type(pred_dist.dtype).view(1, 1, -1, 1)).sum(2)
         return dist2bbox(pred_dist, anchor_points, xywh=False)
-
-   def get_assigned_targets_and_loss(self, preds: dict[str, torch.Tensor], batch: dict[str, Any]) -> tuple:
-       loss = torch.zeros(4, device=self.device)  # box, cls, dfl, center
+    
+    def get_assigned_targets_and_loss(self, preds: dict[str, torch.Tensor], batch: dict[str, Any]) -> tuple:
+        loss = torch.zeros(4, device=self.device)  # box, cls, dfl, center
 
         pred_distri, pred_scores = (
             preds["boxes"].permute(0, 2, 1).contiguous(),
