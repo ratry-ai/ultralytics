@@ -455,7 +455,7 @@ class v8DetectionLoss:
         if fg_mask.sum():
             pos_bbox = target_bboxes[fg_mask]
 
-            anchor_points_batch = anchor_points.unsqueeze(o).expand(
+            anchor_points_batch = anchor_points.unsqueeze(0).expand(
                 fg_mask.shape[0], -1, -1
             )
             
